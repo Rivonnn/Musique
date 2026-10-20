@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import com.example.musique.ui.components.NinePatchImage
 import com.example.musique.R
+import com.example.musique.model.Song
 
 
 @Composable
@@ -37,32 +38,27 @@ fun PlaylistScreen(
     val songs by viewModel.currentPlaylistSongs.collectAsState()
     val isLoading by viewModel.isLoadingPlaylistSongs.collectAsState()
 
-    var dialogEdit by remember { mutableStateOf<Int?>(null) }
     var newTitle by remember { mutableStateOf("") }
     var newArtist by remember { mutableStateOf("") }
     var newImageUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingEditIndex by remember { mutableIntStateOf(-1) }
+    var dialogEditId by remember { mutableStateOf<Long?>(null) }
+    var pendingEditSong by remember { mutableStateOf<Song?>(null) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            if (pendingEditIndex >= 0) {
-                val song = songs[pendingEditIndex]
-                viewModel.updateSong(
-                    song.copy(
-                        title = song.title,
-                        artist = song.artist,
-                        imageUri = uri
-                    )
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-                pendingEditIndex = -1
+            } catch (_: SecurityException) { }
+            pendingEditSong?.let { song ->
+                viewModel.updateSong(song.copy(imageUri = uri))
             }
         }
+        pendingEditSong = null
     }
 
     Box(
@@ -85,20 +81,6 @@ fun PlaylistScreen(
             ) {
                 PixelTextButton(
                     onClick = { onBack() },
-//                    icon = {
-//                        Box(
-//                            Modifier.padding(bottom = 10.dp, start = 6.dp)
-//                        ) {
-//                            Icon(
-//                                imageVector = Icons.Filled.DoubleArrow,
-//                                contentDescription = null,
-//                                tint = Color(0xff175546),
-//                                modifier = Modifier
-//                                    .rotate(180f)
-//                                    .size(32.dp)
-//                            )
-//                        }
-//                    }
                 ) {
                     Text(
                         text = "BACK",
@@ -144,85 +126,92 @@ fun PlaylistScreen(
                 )
             }
 
-            // Empty playlist screen
-            if (isLoading) {
-                return
-            }
+            when {
+                // Nothing has loaded yet.
+                isLoading -> { }
 
-            if (songs.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "As Empty As The Void...",
-                        fontSize = 24.sp,
-                        lineHeight = 32.sp,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
+                // List is empty, display this.
+                songs.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "As Empty As The Void...",
+                            fontSize = 24.sp,
+                            lineHeight = 32.sp,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                    }
                 }
-                return
-            }
 
-            LazyColumn (
-                contentPadding = PaddingValues(bottom = 64.dp)
-            ) {
-                itemsIndexed(songs, key = { _, song -> song.id }) { index, song ->
-                    SongListItem(
-                        viewModel = viewModel,
-                        playlist = playlist,
-                        song = song,
-                        songs = songs,
-                        index = index,
-                        isLast = index == songs.lastIndex,
-                        isCurrent = index == viewModel.currentSongIndex && viewModel.currentPlaylistId == playlist.id,
-                        onLongClick = {
-                            dialogEdit = index
-                            newTitle = song.title
-                            newArtist = song.artist
-                            newImageUri = song.imageUri
+                // List has some items, render them.
+                else -> {
+                    LazyColumn (
+                        contentPadding = PaddingValues(bottom = 64.dp)
+                    ) {
+                        itemsIndexed(songs, key = { _, song -> song.id }) { index, song ->
+                            SongListItem(
+                                viewModel = viewModel,
+                                playlist = playlist,
+                                song = song,
+                                songs = songs,
+                                index = index,
+                                isLast = index == songs.lastIndex,
+                                isCurrent = song.id == viewModel.currentSong?.id,
+                                onLongClick = {
+                                    dialogEditId = song.id
+                                    newTitle = song.title
+                                    newArtist = song.artist
+                                    newImageUri = song.imageUri
+                                }
+                            )
                         }
-                    )
+                    }
                 }
             }
         }
 
         // Song edit dialog
-        dialogEdit?.let { index ->
-            val song = songs[index]
-            EditSongDialog(
-                title = newTitle,
-                onTitleChange = { newTitle = it },
-                artist = newArtist,
-                onArtistChange = { newArtist = it },
-                onDismiss = { dialogEdit = null },
-                onAddImageClick = {
-                    pendingEditIndex = index
-                    dialogEdit = null
-                    imagePickerLauncher.launch("image/*")
-                },
-                onRemoveImageClick = {
-                    viewModel.updateSong(song.copy(title = newTitle, artist = newArtist, imageUri = null))
-                    newImageUri = null
-                    dialogEdit = null
-                },
-                onDelete = {
-                    if (viewModel.currentSongIndex == index) {
-                        viewModel.stopPlayback()
-                    }
-                    viewModel.deleteSong(song)
-                    dialogEdit = null
-                },
-                onSave = {
-                    if (newTitle.isNotBlank() && newArtist.isNotBlank()) {
-                        viewModel.updateSong(song.copy(title = newTitle, artist = newArtist, imageUri = song.imageUri))
-                        dialogEdit = null
-                    }
-                },
-                imageUri = newImageUri
-            )
+        dialogEditId?.let { id ->
+            val song = songs.find { it.id == id }
+            if (song == null) {
+                dialogEditId = null
+            } else {
+                EditSongDialog(
+                    title = newTitle,
+                    onTitleChange = { newTitle = it },
+                    artist = newArtist,
+                    onArtistChange = { newArtist = it },
+                    onDismiss = { dialogEditId = null },
+                    onAddImageClick = {
+                        pendingEditSong = song
+                        dialogEditId = null
+                        imagePickerLauncher.launch(arrayOf("image/*"))
+                    },
+                    onRemoveImageClick = {
+                        viewModel.updateSong(song.copy(title = newTitle, artist = newArtist, imageUri = null))
+                        newImageUri = null
+                        dialogEditId = null
+                    },
+                    onDelete = {
+                        if (viewModel.currentSong?.id == song.id) {
+                            viewModel.stopPlayback()
+                        }
+                        viewModel.deleteSong(song)
+                        dialogEditId = null
+                    },
+                    onSave = {
+                        if (newTitle.isNotBlank() && newArtist.isNotBlank()) {
+                            viewModel.updateSong(song.copy(title = newTitle, artist = newArtist))
+                            dialogEditId = null
+                        }
+                    },
+                    imageUri = newImageUri
+                )
+            }
         }
     }
 }

@@ -40,8 +40,12 @@ interface MusicDao {
     // Live list of one playlist's songs in manual order.
     // NOTE: songs tied on sortOrder (all start at 0) come back in arbitrary order;
     // TODO: add ", id ASC" as a tiebreaker.
-    @Query("SELECT * FROM songs WHERE playlistId = :playlistId ORDER BY sortOrder ASC")
+    @Query("SELECT * FROM songs WHERE playlistId = :playlistId ORDER BY sortOrder ASC, id ASC")
     fun getSongsForPlaylist(playlistId: Long): Flow<List<Song>>
+
+    // Next free sortOrder in a playlist (0 if empty). Used to append new songs at the end.
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) + 1 FROM songs WHERE playlistId = :playlistId")
+    suspend fun getNextSortOrder(playlistId: Long): Int
 
     // Same REPLACE behavior as insertPlaylist. The new song's sortOrder is whatever
     // the Song carries (default 0), nothing here assigns the next position.

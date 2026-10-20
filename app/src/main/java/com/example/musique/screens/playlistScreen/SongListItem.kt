@@ -65,8 +65,7 @@ fun SongListItem(
             .combinedClickable(
                 onClick = {
                     val c = viewModel.controller
-                    if (viewModel.currentSongIndex != index ||
-                        viewModel.currentPlaylistId != playlist.id ||
+                    if (!isCurrent ||
                         (c?.isPlaying == false && c.playbackState == Player.STATE_ENDED)
                     ) {
                         viewModel.playSongs(songs, index, playlist.name, playlist.id)

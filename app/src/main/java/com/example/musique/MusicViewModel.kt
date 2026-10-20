@@ -22,6 +22,7 @@ import com.example.musique.model.Playlist
 import com.example.musique.model.Song
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,10 +61,6 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     val playlists = dao.getAllPlaylists()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // Set to true once the controller connects to MusicService.
-    var isPlayerReady by mutableStateOf(false)
-        private set
-
     // For the UI to know if music is currently playing or paused.
     var isPlaying by mutableStateOf(false)
         private set
@@ -83,6 +80,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     // Is true when the user is dragging the slider
     // Needed so that the polling loop doesn't fight the manual dragging of the slider.
     var isSeeking by mutableStateOf(false)
+        private set
 
     // Song which is shown on the home screen as the currentlyPlaying block.
     var currentSong by mutableStateOf<Song?>(null)
@@ -128,8 +126,6 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         controllerFuture?.addListener({
             try {
                 controller = controllerFuture?.get()
-                isPlayerReady = true
-
                 controller?.addListener(object : Player.Listener {
                     // Stops playback when the last item ends.
                     // Otherwise, does nothing, the player advances itself.
@@ -141,7 +137,6 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 })
 
             } catch (_: Exception) {
-                isPlayerReady = false
                 controller = null
             }
         }, MoreExecutors.directExecutor())
@@ -193,15 +188,15 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     fun updatePlaylist(playlist: Playlist) {
-        viewModelScope.launch {
-            dao.updatePlaylist(playlist)
-        }
+        if (currentPlaylistId == playlist.id) currentPlaylistName = playlist.name
+        viewModelScope.launch { dao.updatePlaylist(playlist) }
     }
 
     // Simple insert, not related to file URI based insertion.
     fun addSong(song: Song) {
         viewModelScope.launch {
-            dao.insertSong(song)
+            val nextOrder = dao.getNextSortOrder(song.playlistId)
+            dao.insertSong(song.copy(sortOrder = nextOrder))
         }
     }
 
@@ -216,41 +211,59 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
      * corrupt file. TODO: move to Dispatchers.IO and wrap in try/catch.
      */
     fun addSongFromUri(context: Context, uri: Uri, playlistId: Long) {
-        context.contentResolver.takePersistableUriPermission(
-            uri,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION
-        )
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: SecurityException) {
+                // Grant not persistable, the song plays this session but may not after a restart
+            }
 
-        // Opens the file to read its embedded tags.
-        val retriever = MediaMetadataRetriever()
-        retriever.setDataSource(context, uri)
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(context, uri)
+                val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
 
-        // Stores the metadata related to the audio file.
-        val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-        val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-        val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
-        retriever.release()
-
-        // Add the song after required information is received.
-        addSong(
-            Song(
-                playlistId = playlistId,
-                title = title ?: "Unknown",
-                artist = artist ?: "Unknown",
-                duration = durationMs,
-                uri = uri
-            )
-        )
+                addSong(
+                    Song(
+                        playlistId = playlistId,
+                        title = title ?: "Unknown",
+                        artist = artist ?: "Unknown",
+                        duration = durationMs,
+                        uri = uri
+                    )
+                )
+            } catch (_: Exception) {
+                // Unreadable or corrupt file, skip it instead of crashing
+            } finally {
+                retriever.release()
+            }
+        }
     }
     fun deleteSong(song: Song) {
-        viewModelScope.launch {
-            dao.deleteSong(song)
+        val queueIndex = currentQueue.indexOfFirst { it.id == song.id }
+        if (queueIndex >= 0) {
+            if (currentSong?.id == song.id) {
+                stopPlayback()
+            } else {
+                controller?.removeMediaItem(queueIndex)
+                currentQueue = currentQueue.toMutableList().also { it.removeAt(queueIndex) }
+                currentSongIndex = currentQueue.indexOfFirst { it.id == currentSong?.id }
+            }
         }
+        viewModelScope.launch { dao.deleteSong(song) }
     }
     fun updateSong(song: Song) {
-        viewModelScope.launch {
-            dao.updateSong(song)
+        if (currentSong?.id == song.id) currentSong = song
+        val i = currentQueue.indexOfFirst { it.id == song.id }
+        if (i >= 0) {
+            currentQueue = currentQueue.toMutableList().also { it[i] = song }
         }
+        viewModelScope.launch { dao.updateSong(song) }
     }
 
     // A mutable copy of the current playlist which is displayed.
@@ -293,21 +306,24 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
      * That shifts positions, so adjustedStart converts the tapped song's position
      * in the full list into its position in the filtered list.
      *
+     * Does nothing if there are no playable songs or the controller isn't connected yet,
+     * so the UI never shows "playing" without audio.
+     *
      * NOTE: currentQueue and currentSongIndex use the FULL list, but the player's
      * queue is the filtered one. They only agree when every song has a uri.
-     * TODO: store the filtered list so the indices always match.
-     * NOTE: UI state is updated even if the controller isn't connected yet.
+     * deleteSong and syncSwapToPlayer rely on this agreement too.
+     * TODO: store the filtered list so positions always match (or make Song.uri non-null).
      */
     fun playSongs(songs: List<Song>, startIndex: Int, playlistName: String, playlistId: Long) {
         val indexed = songs.mapIndexedNotNull { i, s ->
             s.uri?.let { uri -> Pair(i, MediaItem.fromUri(uri)) }
         }
         if (indexed.isEmpty()) return
-
+        val player = controller ?: return
         val mediaItems = indexed.map { it.second }
         val adjustedStart = indexed.indexOfFirst { it.first == startIndex }.takeIf { it >= 0 } ?: 0
 
-        controller?.run {
+        player.run {
             setMediaItems(mediaItems, adjustedStart, 0L)
             prepare()
             play()
@@ -336,7 +352,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Seeks the player to this position (ms). Called by onSeekFinished.
-    fun seekTo(position: Long) {
+    private fun seekTo(position: Long) {
         controller?.seekTo(position)
     }
 
@@ -348,6 +364,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         isPlaying = false
         currentSongIndex = -1
         currentSong = null
+        currentPlaylistName = null
+        currentPlaylistId = null
+        currentQueue = emptyList()
         sliderPosition = 0f
         songDuration = 1f
     }
@@ -375,32 +394,51 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Swaps two adjacent songs and stores the new order.
      *
-     * The on-screen list is updated first then each song's sortOrder is rewritten in
-     * the database.
+     * The on-screen list is updated first, then, if this playlist is the one playing,
+     * the swap is mirrored onto the player's queue (see syncSwapToPlayer). Finally, each
+     * song's sortOrder is rewritten in the database.
      *
-     * Stops playback if the playing song is swapped,
-     * because the highlight is index-based and would land on the wrong row
-     * NOTE: swapping other songs leaves the player's upcoming order unchanged
-     * NOTE: it isn't ideal UX.
+     * Playback is not interrupted, even when the playing song is one of the two.
      */
     fun swapSongs(playlistId: Long, fromIndex: Int, toIndex: Int) {
-        val current = _currentPlaylistSongs.value.toMutableList()
-        val temp = current[fromIndex]
-        current[fromIndex] = current[toIndex]
-        current[toIndex] = temp
-        _currentPlaylistSongs.value = current
+        // 1. Swap in the list the screen draws
+        val reorderedSongs = _currentPlaylistSongs.value.toMutableList()
+        val songA = reorderedSongs[fromIndex]
+        val songB = reorderedSongs[toIndex]
+        reorderedSongs[fromIndex] = songB
+        reorderedSongs[toIndex] = songA
+        _currentPlaylistSongs.value = reorderedSongs
 
-        if (currentPlaylistId == playlistId &&
-            (currentSongIndex == fromIndex || currentSongIndex == toIndex)) {
-            stopPlayback()
+        // 2. If this playlist is playing, mirror the swap in the player
+        if (currentPlaylistId == playlistId) {
+            syncSwapToPlayer(songA, songB)
         }
 
+        // 3. Save the new order
         viewModelScope.launch {
-            val updatedSongs = current.mapIndexed { index, song ->
-                song.copy(sortOrder = index)
-            }
-            dao.updateSongs(updatedSongs)
+            dao.updateSongs(reorderedSongs.mapIndexed { position, song ->
+                song.copy(sortOrder = position)
+            })
         }
+    }
+
+    // Applies a swap of two adjacent songs to the player's queue and
+    // keeps currentQueue and currentSongIndex in sync.
+    private fun syncSwapToPlayer(songA: Song, songB: Song) {
+        val queuePosA = currentQueue.indexOfFirst { it.id == songA.id }
+        val queuePosB = currentQueue.indexOfFirst { it.id == songB.id }
+
+        val bothInQueue = queuePosA >= 0 && queuePosB >= 0
+        val areNeighbors = kotlin.math.abs(queuePosA - queuePosB) == 1
+        if (!bothInQueue || !areNeighbors) return
+
+        controller?.moveMediaItem(queuePosA, queuePosB)
+
+        val updatedQueue = currentQueue.toMutableList()
+        java.util.Collections.swap(updatedQueue, queuePosA, queuePosB)
+        currentQueue = updatedQueue
+
+        currentSongIndex = currentQueue.indexOfFirst { it.id == currentSong?.id }
     }
 
     // On/Off toggle for shuffle, mirrors it for the SHUFFLE button state.

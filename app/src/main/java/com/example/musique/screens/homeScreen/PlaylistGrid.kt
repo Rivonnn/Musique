@@ -63,18 +63,20 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
     var pendingEditPlaylist by remember { mutableStateOf<Playlist?>(null) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: SecurityException) { }
             pendingEditPlaylist?.let {
                 viewModel.updatePlaylist(it.copy(name = newName, imageUri = uri))
             }
-            pendingEditPlaylist = null
         }
+        pendingEditPlaylist = null
     }
 
     if (playlistList.isEmpty()) {
@@ -195,7 +197,7 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
             onAddImageClick = {
                 pendingEditPlaylist = playlist
                 editPlaylist = null
-                imagePickerLauncher.launch("image/*")
+                imagePickerLauncher.launch(arrayOf("image/*"))
             },
             onRemoveImageClick = {
                 viewModel.updatePlaylist(playlist.copy(imageUri = null))
@@ -203,6 +205,9 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
                 editPlaylist = null
             },
             onDelete = {
+                if (viewModel.currentSong?.playlistId == playlist.id) {
+                    viewModel.stopPlayback()
+                }
                 viewModel.deletePlaylist(playlist)
                 editPlaylist = null
             },
