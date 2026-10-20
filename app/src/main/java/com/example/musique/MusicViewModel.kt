@@ -39,7 +39,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Purpose of view model:
  * 1. Persistence: Songs and playlists live in Room (accessed from dao).
  * 2. Playback: The ExoPlayer lives inside MusicService, this class talks to it through
- *    mediaController and mirrors the players state into Compose state so that the
+ *    controller and mirrors the player's state into Compose state so that the
  *    UI can observe it.
  */
 class MusicViewModel(application: Application) : AndroidViewModel(application) {
@@ -60,7 +60,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     val playlists = dao.getAllPlaylists()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // Set to true once the mediaController connects to MusicService.
+    // Set to true once the controller connects to MusicService.
     var isPlayerReady by mutableStateOf(false)
         private set
 
@@ -131,7 +131,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 isPlayerReady = true
 
                 controller?.addListener(object : Player.Listener {
-                    // To stop playback if the last song ends, else move on to next song.
+                    // Stops playback when the last item ends.
+                    // Otherwise, does nothing, the player advances itself.
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState == Player.STATE_ENDED && controller?.hasNextMediaItem() == false) {
                             stopPlayback()
@@ -146,7 +147,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }, MoreExecutors.directExecutor())
 
         // Polling loop which lasts the lifetime of MusicViewModel.
-        // Skipped while paused or when user is manually draggin the slider.
+        // Skipped while paused or when user is manually dragging the slider.
         viewModelScope.launch {
             while (isActive) {
                 if (isPlaying && !isSeeking) {
@@ -159,7 +160,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     sliderPosition = pos
                     songDuration = dur
                     val newIndex = c.currentMediaItemIndex
-                    // If the player advances tracks manually.
+                    // Catches track changes we didn't trigger (auto-advance, notification next/previous).
                     // Update currentlyPlaying and reset slider position with duration.
                     if (newIndex >= 0 && newIndex != currentSongIndex) {
                         currentSongIndex = newIndex
@@ -220,11 +221,11 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             Intent.FLAG_GRANT_READ_URI_PERMISSION
         )
 
-        // Stores the URI
+        // Opens the file to read its embedded tags.
         val retriever = MediaMetadataRetriever()
         retriever.setDataSource(context, uri)
 
-        // Stores the metadata related to the mp3.
+        // Stores the metadata related to the audio file.
         val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
         val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
         val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
@@ -257,10 +258,13 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentPlaylistSongs = MutableStateFlow<List<Song>>(emptyList())
     val currentPlaylistSongs: StateFlow<List<Song>> = _currentPlaylistSongs
 
-    // Holds the active listener so opening a different playlist cancels the old one.
+    // Holds the active collector so opening a different playlist cancels the old one.
     // Otherwise, two would run and overwrite each other's list.
     private var songLoadJob: Job? = null
 
+    // True from loadSongsForPlaylist() until the first emission.
+    // NOTE: not read by any screen as of now, and the previous playlist's songs
+    // stay in _currentPlaylistSongs meanwhile.
     private val _isLoadingPlaylistSongs = MutableStateFlow(false)
     val isLoadingPlaylistSongs: StateFlow<Boolean> = _isLoadingPlaylistSongs
 
@@ -277,7 +281,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Passed through the Home screen to load each playlist's songCount and totalDuration values.
+    // Forward straight to the DAO because screens only to the ViewModel.
+    // PlaylistGrid calls both once per playlist card (2 live queries per card).
     fun getSongCount(playlistId: Long) = dao.getSongCount(playlistId)
     fun getTotalDuration(playlistId: Long) = dao.getTotalDuration(playlistId)
 
@@ -330,15 +335,14 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Jumps to a position on the slider.
-    // Called when the user releases the slider.
+    // Seeks the player to this position (ms). Called by onSeekFinished.
     fun seekTo(position: Long) {
         controller?.seekTo(position)
     }
 
-    // Stops the entire playback. Resets everything to a starting state.
-    // Called when hold pressed currentlyPlaying button, last track ends
-    // or deleting/reordering songs.
+    // Stops the player and clears the now-playing song, index and slider.
+    // Playlist name/id and currentQueue are left as they were.
+    // Called on long-press of the currently-playing card or deleting/reordering songs.
     fun stopPlayback() {
         controller?.stop()
         isPlaying = false
@@ -348,10 +352,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         songDuration = 1f
     }
 
-    // onSeekStart updates the sliders position
+    // onSeekStart updates the slider's position
     // onSeekFinished actually sets the position to the value
-    // The split is made so that the song continues as normal when the user is dragging
-    // the slider and change to the position only occurs when slider is released.
+    /* The split is made so that the song continues as normal when the user is dragging
+       the slider and change to the position only occurs when slider is released. */
     fun onSeekStart(position: Float) {
         isSeeking = true
         sliderPosition = position
@@ -361,8 +365,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         isSeeking = false
     }
 
-    // Returns the playlist ID, navigation only passes the ID so this function is used
-    // by the screen to look up playlist.
+    // Looks up a Playlist by ID from the loaded snapshot.
+    // Null before playlists has emitted or after deletion
+    // (NavGraph then shows a blank screen).
     fun getPlaylistById(id: Long): Playlist? {
         return playlists.value.find { it.id == id }
     }
@@ -370,12 +375,13 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Swaps two adjacent songs and stores the new order.
      *
-     * The on-screen list is updated first then each song's sortOrder() is rewritten in
+     * The on-screen list is updated first then each song's sortOrder is rewritten in
      * the database.
      *
-     * Stops playback if the song which is playing is involved in the swap as the queue
-     * wouldn't match the new order.
-     * Note: It isn't ideal UX.
+     * Stops playback if the playing song is swapped,
+     * because the highlight is index-based and would land on the wrong row
+     * NOTE: swapping other songs leaves the player's upcoming order unchanged
+     * NOTE: it isn't ideal UX.
      */
     fun swapSongs(playlistId: Long, fromIndex: Int, toIndex: Int) {
         val current = _currentPlaylistSongs.value.toMutableList()
@@ -404,6 +410,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // On/Off toggle for loop, mirrors it for the loop button state.
+    // With REPEAT_MODE_ONE the player never reaches STATE_ENDED,
+    // so the end of queue listener in init never fires while looping.
     fun toggleLoop() {
         isLooping = !isLooping
         controller?.repeatMode = if (isLooping) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF

@@ -10,14 +10,37 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.musique.model.Playlist
 import com.example.musique.model.Song
 
+/**
+ * The Room database which stores the Song and Playlist tables.
+ * It also stores the migrations which help update older installs upgrade to current schema.
+ *
+ */
 @Database(entities = [Playlist::class, Song::class], version = 6)
+// Room cannot store URI directly, converters help it store them as string.
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
+
+    // Entry point to all queries, MusicViewModel gets its dao from here.
     abstract fun musicDao(): MusicDao
 
     companion object {
+
+        // @Volatile makes a newly created instance immediately visible to every thread.
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // v1 -> v2: songs get an optional cover image.
+        // v2 -> v3: playlists get an optional cover image.
+
+        // v3 -> v4: rebuilds songs with a playlistId foreign key (CASCADE delete) and a
+        // duration column. SQLite can't add a foreign key to an existing table, so the
+        // table is rebuilt: create songs_new, copy rows (duration set to 0), drop the
+        // old table, rename.
+
+        // v4 -> v5: adds sortOrder for manual ordering. Existing songs all start at 0.
+
+        // v5 -> v6: adds the (playlistId, sortOrder) index declared on Song.
+        // The index name must match the one Room generates.
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -68,17 +91,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Returns the one shared database. Double-checked locking: the first check skips
+        // the lock when the instance exists; the second, inside synchronized, stops two
+        // threads from both creating it.
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "music_database"
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
-                INSTANCE = instance
-                instance
+                    .also { INSTANCE = it }
             }
         }
     }

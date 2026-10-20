@@ -4,6 +4,9 @@ import android.net.Uri
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * One playlist row. imageUri is the optional cover art; null means no cover.
+ */
 @Entity(tableName = "playlists")
 data class Playlist(
     @PrimaryKey(autoGenerate = true)
