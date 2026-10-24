@@ -1,5 +1,6 @@
 package com.example.musique.screens.homeScreen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -28,7 +30,6 @@ import com.example.musique.ui.components.PixelSlider
 fun CurrentlyPlaying(viewModel: MusicViewModel) {
 
     val song = viewModel.currentSong ?: return
-    viewModel.isPlaying
     val playlistName = viewModel.currentPlaylistName
 
     Box(
@@ -64,12 +65,12 @@ fun CurrentlyPlaying(viewModel: MusicViewModel) {
                     )
                 }
                 else {
-                    Icon(
-                        imageVector = Icons.Filled.MusicNote,
-                        tint = Color(0xff2b2a56),
+                    Image(
+                        painter = painterResource(id = R.drawable.music_note_blue),
                         contentDescription = null,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(48.dp)
                     )
                 }
                 Column(

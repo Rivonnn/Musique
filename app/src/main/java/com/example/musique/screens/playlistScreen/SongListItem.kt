@@ -98,18 +98,19 @@ fun SongListItem(
                         contentDescription = null,
                         modifier = Modifier
                             .size(52.dp)
-                            .border(width = 1.dp, color = Color(0xff175546), shape = RoundedCornerShape(16.dp))
+                            .border(width = 1.5.dp, color = Color(0xff175546), shape = RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Filled.MusicNote,
-                        tint = Color(0xff175546),
+                    Image(
+                        painter = painterResource(id = R.drawable.music_note_teal),
                         contentDescription = null,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(48.dp)
-                            .padding(all = 2.dp)
+                            .size(52.dp)
+                            .border(width = 1.5.dp, color = Color(0xff175546), shape = RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
                     )
                 }
 

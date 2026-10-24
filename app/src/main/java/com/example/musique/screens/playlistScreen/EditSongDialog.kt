@@ -95,23 +95,23 @@ fun EditSongDialog(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Icon(
-                                imageVector = Icons.Filled.MusicNote,
-                                tint = if(!imageMode) {Color(0xff175546)}
-                                else { Color(0xff2b2a56)},
+                            Image(
+                                painter = painterResource(
+                                    id = if (!imageMode) R.drawable.music_note_teal else R.drawable.music_note_blue
+                                ),
                                 contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .border(
-                                        width = 0.dp,
-                                        color = Color(0x00FFFFFF),
+                                        width = 2.dp,
+                                        color = if (!imageMode) Color(0xff175546) else Color(0xff2b2a56),
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(if(!imageMode) {Color(0x70175546)}
-                                    else { Color(0x702b2a56)})
+                                    .background(
+                                        if (!imageMode) Color(0xff6eb8a8) else Color(0xff00b1d5)
+                                    )
                                     .clickable { imageMode = !imageMode }
-                                ,
                             )
                         }
                         Image(

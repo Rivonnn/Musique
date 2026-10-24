@@ -55,7 +55,13 @@ fun PlaylistScreen(
                 )
             } catch (_: SecurityException) { }
             pendingEditSong?.let { song ->
-                viewModel.updateSong(song.copy(imageUri = uri))
+                viewModel.updateSong(
+                    song.copy(
+                        title = newTitle.ifBlank { song.title },
+                        artist = newArtist.ifBlank { song.artist },
+                        imageUri = uri
+                    )
+                )
             }
         }
         pendingEditSong = null
@@ -192,7 +198,13 @@ fun PlaylistScreen(
                         imagePickerLauncher.launch(arrayOf("image/*"))
                     },
                     onRemoveImageClick = {
-                        viewModel.updateSong(song.copy(title = newTitle, artist = newArtist, imageUri = null))
+                        viewModel.updateSong(
+                            song.copy(
+                                title = newTitle.ifBlank { song.title },
+                                artist = newArtist.ifBlank { song.artist },
+                                imageUri = null
+                            )
+                        )
                         newImageUri = null
                         dialogEditId = null
                     },

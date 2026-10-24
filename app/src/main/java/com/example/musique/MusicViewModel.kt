@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -14,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -32,6 +34,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+import android.graphics.Bitmap
+import java.io.ByteArrayOutputStream
 
 /**
  * MusicViewModel is shared by all the screens, so that playback state can survive across
@@ -59,6 +63,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     // All playlists, collected as soon as the ViewModel exists so the list
     // is ready when screens open.
     val playlists = dao.getAllPlaylists()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    // Playlists plus each one's song count and total duration, from one query.
+    val playlistsWithStats = dao.getAllPlaylistsWithStats()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // For the UI to know if music is currently playing or paused.
@@ -134,6 +142,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                             stopPlayback()
                         }
                     }
+                    override fun onIsPlayingChanged(isPlayingNow: Boolean) {
+                        isPlaying = isPlayingNow
+                    }
                 })
 
             } catch (_: Exception) {
@@ -207,8 +218,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
      * Steps: keep read access to the file across app restarts, read the embedded
      * tags (title/artist/duration), fall back to "Unknown", then save.
      *
+     * Runs on Dispatchers.IO. Unreadable or corrupt files are skipped silently.
+     *
      * NOTE: runs on the calling (main) thread and doesn't catch errors from a
-     * corrupt file. TODO: move to Dispatchers.IO and wrap in try/catch.
+     * corrupt file.
      */
     fun addSongFromUri(context: Context, uri: Uri, playlistId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -244,6 +257,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+    // Removes the song from the database. If it is in the playing queue, the
+    // player and currentQueue are updated too; if it is the song playing now,
+    // playback stops instead.
     fun deleteSong(song: Song) {
         val queueIndex = currentQueue.indexOfFirst { it.id == song.id }
         if (queueIndex >= 0) {
@@ -262,6 +278,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         val i = currentQueue.indexOfFirst { it.id == song.id }
         if (i >= 0) {
             currentQueue = currentQueue.toMutableList().also { it[i] = song }
+            song.uri?.let { controller?.replaceMediaItem(i, buildMediaItem(song, it)) }
+            song.uri?.let { controller?.replaceMediaItem(i, buildMediaItem(song, it)) }
         }
         viewModelScope.launch { dao.updateSong(song) }
     }
@@ -294,11 +312,6 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Forward straight to the DAO because screens only to the ViewModel.
-    // PlaylistGrid calls both once per playlist card (2 live queries per card).
-    fun getSongCount(playlistId: Long) = dao.getSongCount(playlistId)
-    fun getTotalDuration(playlistId: Long) = dao.getTotalDuration(playlistId)
-
     /**
      * Starts playing songs from startIndex and records which playlist they came from.
      *
@@ -316,7 +329,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun playSongs(songs: List<Song>, startIndex: Int, playlistName: String, playlistId: Long) {
         val indexed = songs.mapIndexedNotNull { i, s ->
-            s.uri?.let { uri -> Pair(i, MediaItem.fromUri(uri)) }
+            s.uri?.let { uri -> Pair(i, buildMediaItem(s, uri)) }
         }
         if (indexed.isEmpty()) return
         val player = controller ?: return
@@ -338,6 +351,28 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         currentPlaylistId = playlistId
     }
 
+    // Wraps a song's uri with its title, artist and cover so the media
+    // notification can show them.
+    private fun buildMediaItem(song: Song, uri: Uri): MediaItem {
+        return MediaItem.Builder()
+            .setUri(uri)
+            .setMediaId(song.id.toString())
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(song.title)
+                    .setArtist(song.artist)
+                    .apply {
+                        if (song.imageUri != null) {
+                            setArtworkUri(song.imageUri)
+                        } else {
+                            setArtworkData(defaultArtworkBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        }
+                    }
+                    .build()
+            )
+            .build()
+    }
+
     // A toggle to keep track of play and pause states.
     fun togglePlayPause() {
         controller?.let {
@@ -356,9 +391,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         controller?.seekTo(position)
     }
 
-    // Stops the player and clears the now-playing song, index and slider.
-    // Playlist name/id and currentQueue are left as they were.
-    // Called on long-press of the currently-playing card or deleting/reordering songs.
+    // Stops the player and clears all now-playing state: song, index, playlist
+    // name/id, queue and slider.
+    // Called on long-press of the currently-playing card, when the last track
+    // ends, or when the playing song or playlist is deleted.
     fun stopPlayback() {
         controller?.stop()
         isPlaying = false
@@ -453,5 +489,15 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleLoop() {
         isLooping = !isLooping
         controller?.repeatMode = if (isLooping) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+    }
+
+    // Fallback cover for songs with no image, decoded once and sent as PNG bytes.
+    private val defaultArtworkBytes: ByteArray by lazy {
+        val bitmap = BitmapFactory.decodeResource(
+            getApplication<Application>().resources,
+            R.drawable.music_note_teal
+        )
+        ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            .toByteArray()
     }
 }

@@ -11,7 +11,8 @@ import androidx.room.PrimaryKey
  * its songs (CASCADE). `uri` is the audio file; `imageUri` is optional cover art.
  * `sortOrder` is the position within the playlist. The composite index speeds up
  * the "songs for playlist, in order" query and covers the playlistId foreign key.
- * NOTE: sortOrder defaults to 0, so new songs tie at 0 until the first swap.
+ * New songs get the next free sortOrder from MusicViewModel.addSong();
+ * the default 0 only applies if a Song is inserted directly.
  */
 @Entity(
     tableName = "songs",

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +31,7 @@ import coil.compose.AsyncImage
 import com.example.musique.MusicViewModel
 import com.example.musique.model.Playlist
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.painterResource
 import com.example.musique.R
 import com.example.musique.ui.components.NinePatchImage
 
@@ -55,7 +57,7 @@ fun formatSongDuration(totalMs: Long): String {
 @Composable
 fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit) {
     val context = LocalContext.current
-    val playlistList by viewModel.playlists.collectAsState()
+    val playlistList by viewModel.playlistsWithStats.collectAsState()
 
     var editPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var newName by remember { mutableStateOf("") }
@@ -73,7 +75,9 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
                 )
             } catch (_: SecurityException) { }
             pendingEditPlaylist?.let {
-                viewModel.updatePlaylist(it.copy(name = newName, imageUri = uri))
+                viewModel.updatePlaylist(
+                    it.copy(name = newName.ifBlank { it.name }, imageUri = uri)
+                )
             }
         }
         pendingEditPlaylist = null
@@ -103,11 +107,10 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(playlistList) { playlist ->
-            val songCountFlow = remember(playlist.id) { viewModel.getSongCount(playlist.id) }
-            val totalDurationFlow = remember(playlist.id) { viewModel.getTotalDuration(playlist.id) }
-            val songCount by songCountFlow.collectAsState(initial = 0)
-            val totalDuration by totalDurationFlow.collectAsState(initial = 0L)
+        items(playlistList, key = { it.playlist.id }) { stats ->
+            val playlist = stats.playlist
+            val songCount = stats.songCount
+            val totalDuration = stats.totalDuration
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,12 +150,12 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Icon(
-                                Icons.Default.MusicNote,
+                            Image(
+                                painter = painterResource(id = R.drawable.music_note_blue),
                                 contentDescription = null,
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier
-                                    .size(64.dp),
-                                tint = Color(0xff2b2a56)
+                                    .size(96.dp)
                             )
                         }
                     }

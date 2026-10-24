@@ -1,7 +1,12 @@
 package com.example.musique
 
 import android.content.Intent
+import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
@@ -18,10 +23,25 @@ class MusicService : MediaSessionService() {
 
     // Runs once when the service is first created.
     // Builds the player, then wraps it in the session.
+    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
-        val player = ExoPlayer.Builder(this).build()
+        val player = ExoPlayer.Builder(this)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                true // handle audio focus
+            )
+            .setHandleAudioBecomingNoisy(true) // pause on headphone unplug
+            .build()
         mediaSession = MediaSession.Builder(this, player).build()
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider(this).apply {
+                setSmallIcon(R.drawable.light_teal)
+            }
+        )
     }
 
     // Called whenever a controller (ViewModel, notifications) asks to connect.
