@@ -57,14 +57,20 @@ fun PlaylistScreen(
             pendingEditSong?.let { song ->
                 viewModel.updateSong(
                     song.copy(
-                        title = newTitle.ifBlank { song.title },
-                        artist = newArtist.ifBlank { song.artist },
+                        title = newTitle.trim().ifBlank { song.title },
+                        artist = newArtist.trim().ifBlank { song.artist },
                         imageUri = uri
                     )
                 )
             }
         }
         pendingEditSong = null
+    }
+
+    LaunchedEffect(songs, dialogEditId) {
+        if (dialogEditId != null && songs.none { it.id == dialogEditId }) {
+            dialogEditId = null
+        }
     }
 
     Box(
@@ -81,7 +87,8 @@ fun PlaylistScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 8.dp),
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -182,10 +189,7 @@ fun PlaylistScreen(
 
         // Song edit dialog
         dialogEditId?.let { id ->
-            val song = songs.find { it.id == id }
-            if (song == null) {
-                dialogEditId = null
-            } else {
+            songs.find { it.id == id }?.let { song ->
                 EditSongDialog(
                     title = newTitle,
                     onTitleChange = { newTitle = it },
@@ -200,8 +204,8 @@ fun PlaylistScreen(
                     onRemoveImageClick = {
                         viewModel.updateSong(
                             song.copy(
-                                title = newTitle.ifBlank { song.title },
-                                artist = newArtist.ifBlank { song.artist },
+                                title = newTitle.trim().ifBlank { song.title },
+                                artist = newArtist.trim().ifBlank { song.artist },
                                 imageUri = null
                             )
                         )
@@ -209,15 +213,12 @@ fun PlaylistScreen(
                         dialogEditId = null
                     },
                     onDelete = {
-                        if (viewModel.currentSong?.id == song.id) {
-                            viewModel.stopPlayback()
-                        }
-                        viewModel.deleteSong(song)
+                        viewModel.deleteSong(song)   // already stops playback if this song is playing
                         dialogEditId = null
                     },
                     onSave = {
                         if (newTitle.isNotBlank() && newArtist.isNotBlank()) {
-                            viewModel.updateSong(song.copy(title = newTitle, artist = newArtist))
+                            viewModel.updateSong(song.copy(title = newTitle.trim(), artist = newArtist.trim()))
                             dialogEditId = null
                         }
                     },

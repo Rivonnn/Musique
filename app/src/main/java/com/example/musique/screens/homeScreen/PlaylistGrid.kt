@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +29,7 @@ import coil.compose.AsyncImage
 import com.example.musique.MusicViewModel
 import com.example.musique.model.Playlist
 import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.res.painterResource
 import com.example.musique.R
 import com.example.musique.ui.components.NinePatchImage
@@ -53,11 +52,21 @@ fun formatSongDuration(totalMs: Long): String {
     return "%d:%02d".format(minutes, seconds)
 }
 
+/**
+ * Two-column grid of playlist cards on the home screen. Each card shows the cover,
+ * name, song count and total duration, all from one stats query (playlistsWithStats).
+ * Tap opens the playlist; long-press opens the edit dialog (rename, change or
+ * remove cover, delete).
+ *
+ * Name and cover are staged in newName/newImageUri while the dialog is open and are
+ * only saved by Save, Change or Remove. Every path that closes the dialog with a
+ * change keeps the typed name, falling back to the old name if it was blanked.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit) {
     val context = LocalContext.current
-    val playlistList by viewModel.playlistsWithStats.collectAsState()
+    val playlistsWithStats by viewModel.playlistsWithStats.collectAsState()
 
     var editPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var newName by remember { mutableStateOf("") }
@@ -76,14 +85,14 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
             } catch (_: SecurityException) { }
             pendingEditPlaylist?.let {
                 viewModel.updatePlaylist(
-                    it.copy(name = newName.ifBlank { it.name }, imageUri = uri)
+                    it.copy(name = newName.trim().ifBlank { it.name }, imageUri = uri)
                 )
             }
         }
         pendingEditPlaylist = null
     }
 
-    if (playlistList.isEmpty()) {
+    if (playlistsWithStats.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -107,7 +116,7 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(playlistList, key = { it.playlist.id }) { stats ->
+        items(playlistsWithStats, key = { it.playlist.id }) { stats ->
             val playlist = stats.playlist
             val songCount = stats.songCount
             val totalDuration = stats.totalDuration
@@ -154,8 +163,7 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
                                 painter = painterResource(id = R.drawable.music_note_blue),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(96.dp)
+                                modifier = Modifier.size(96.dp)
                             )
                         }
                     }
@@ -203,7 +211,8 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
                 imagePickerLauncher.launch(arrayOf("image/*"))
             },
             onRemoveImageClick = {
-                viewModel.updatePlaylist(playlist.copy(imageUri = null))
+                viewModel.updatePlaylist(
+                    playlist.copy(name = newName.trim().ifBlank { playlist.name }, imageUri = null)                )
                 newImageUri = null
                 editPlaylist = null
             },
@@ -216,7 +225,7 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
             },
             onSave = {
                 if (newName.isNotBlank()) {
-                    viewModel.updatePlaylist(playlist.copy(name = newName, imageUri = newImageUri))
+                    viewModel.updatePlaylist(playlist.copy(name = newName.trim(), imageUri = newImageUri))
                     editPlaylist = null
                 }
             },

@@ -56,7 +56,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
+                db.execSQL(
+                    """
                     CREATE TABLE songs_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         playlistId INTEGER NOT NULL,
@@ -67,11 +68,14 @@ abstract class AppDatabase : RoomDatabase() {
                         imageUri TEXT,
                         FOREIGN KEY (playlistId) REFERENCES playlists(id) ON DELETE CASCADE
                     )
-                """)
-                db.execSQL("""
+                """
+                )
+                db.execSQL(
+                    """
                     INSERT INTO songs_new (id, playlistId, title, artist, duration, uri, imageUri)
                     SELECT id, playlistId, title, artist, 0, uri, imageUri FROM songs
-                """)
+                """
+                )
                 db.execSQL("DROP TABLE songs")
                 db.execSQL("ALTER TABLE songs_new RENAME TO songs")
             }
@@ -101,7 +105,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "music_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6
+                    )
                     .build()
                     .also { INSTANCE = it }
             }

@@ -23,7 +23,11 @@ import com.example.musique.MusicViewModel
 import com.example.musique.R
 import com.example.musique.model.Playlist
 
-@RequiresApi(Build.VERSION_CODES.P)
+/**
+ * Home screen: header, the now-playing card (only visible while a song is loaded),
+ * the + SONG / + PLAYLIST buttons, and the playlist grid, over the shared background.
+ * Navigation to a playlist is handled by the caller through onPlaylistClick.
+ */
 @Composable
 fun HomeScreen(
     viewModel: MusicViewModel = viewModel(),

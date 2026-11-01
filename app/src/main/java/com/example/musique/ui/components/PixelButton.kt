@@ -19,7 +19,6 @@ fun PixelTextButton(
     onClick: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
     backgroundRes: Int = R.drawable.teal_button,
-    icon: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit = {}
 ) {
     Box(
@@ -37,7 +36,6 @@ fun PixelTextButton(
             horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
             modifier = Modifier.padding(contentPadding)
         ) {
-            icon?.invoke()
             content()
         }
     }

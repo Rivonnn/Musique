@@ -321,29 +321,25 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
      *
      * Does nothing if there are no playable songs or the controller isn't connected yet,
      * so the UI never shows "playing" without audio.
-     *
-     * NOTE: currentQueue and currentSongIndex use the FULL list, but the player's
-     * queue is the filtered one. They only agree when every song has a uri.
-     * deleteSong and syncSwapToPlayer rely on this agreement too.
-     * TODO: store the filtered list so positions always match (or make Song.uri non-null).
      */
     fun playSongs(songs: List<Song>, startIndex: Int, playlistName: String, playlistId: Long) {
-        val indexed = songs.mapIndexedNotNull { i, s ->
-            s.uri?.let { uri -> Pair(i, buildMediaItem(s, uri)) }
-        }
-        if (indexed.isEmpty()) return
+        // Only songs with a uri can be played. This filtered list becomes the queue everywhere.
+        val playable = songs.filter { it.uri != null }
+        if (playable.isEmpty()) return
         val player = controller ?: return
-        val mediaItems = indexed.map { it.second }
-        val adjustedStart = indexed.indexOfFirst { it.first == startIndex }.takeIf { it >= 0 } ?: 0
+
+        // Position of the tapped song inside the filtered list (0 if it has no uri).
+        val tappedId = songs.getOrNull(startIndex)?.id
+        val adjustedStart = playable.indexOfFirst { it.id == tappedId }.takeIf { it >= 0 } ?: 0
 
         player.run {
-            setMediaItems(mediaItems, adjustedStart, 0L)
+            setMediaItems(playable.map { buildMediaItem(it,it.uri!!) }, adjustedStart, 0L)
             prepare()
             play()
         }
-        currentQueue = songs
-        currentSong = songs.getOrNull(startIndex)
-        currentSongIndex = startIndex
+        currentQueue = playable
+        currentSong = playable[adjustedStart]
+        currentSongIndex = adjustedStart
         sliderPosition = 0f
         songDuration = 1f
         isPlaying = true

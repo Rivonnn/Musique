@@ -3,13 +3,7 @@ package com.example.musique.screens.playlistScreen
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,22 +29,7 @@ fun SongPicker(
         }
     }
 
-    PixelTextButton(
-        onClick = { importing.launch(arrayOf("audio/*")) },
-//        icon = {
-//            Box(
-//                Modifier.padding(bottom = 10.dp, start = 6.dp)
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Filled.Add,
-//                    contentDescription = null,
-//                    tint = Color(0xff175546),
-//                    modifier = Modifier
-//                        .size(32.dp)
-//                )
-//            }
-//        }
-    ) {
+    PixelTextButton(onClick = { importing.launch(arrayOf("audio/*")) }) {
         Text(
             text = "ADD",
             style = MaterialTheme.typography.headlineMedium,

@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.res.ResourcesCompat
 
-// Shared across all NinePatchImage instances — decoded once per resource, reused everywhere
+// Shared across all NinePatchImage instances - decoded once per resource, reused everywhere
 private val ninePatchCache = mutableMapOf<Int, Drawable?>()
 
 @Composable

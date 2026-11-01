@@ -46,6 +46,7 @@ fun EditSongDialog(
     imageUri: Uri?
 ) {
     var imageMode by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Box {
@@ -91,7 +92,7 @@ fun EditSongDialog(
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .clip(RoundedCornerShape(16.dp))
-                                    .clickable { imageMode = !imageMode},
+                                    .clickable { imageMode = !imageMode; confirmDelete = false},
                                 contentScale = ContentScale.Crop
                             )
                         } else {
@@ -111,7 +112,7 @@ fun EditSongDialog(
                                     .background(
                                         if (!imageMode) Color(0xff6eb8a8) else Color(0xff00b1d5)
                                     )
-                                    .clickable { imageMode = !imageMode }
+                                    .clickable { imageMode = !imageMode; confirmDelete = false }
                             )
                         }
                         Image(
@@ -156,7 +157,7 @@ fun EditSongDialog(
                     }
                 }
 
-                if (title == "" || artist == "") {
+                if (title.isBlank() || artist.isBlank()) {
                     Text(
                         "Title/Artist cannot be empty.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -181,17 +182,16 @@ fun EditSongDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             PixelTextButton(
-                                onClick = onDelete,
+                                onClick = { if (confirmDelete) onDelete() else confirmDelete = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
                                     .height(50.dp)
                             ) {
                                 Text(
-                                    text = "Delete",
+                                    text = if (confirmDelete) "Sure?" else "Delete",
                                     style = MaterialTheme.typography.headlineSmall,
-                                    color = if(!imageMode) {Color(0xff175546)}
-                                            else { Color(0xff2b2a56)},
+                                    color = Color(0xff175546),
                                     modifier = Modifier.offset(y = (-6).dp)
                                 )
                             }
@@ -205,8 +205,7 @@ fun EditSongDialog(
                                 Text(
                                     text = "Save",
                                     style = MaterialTheme.typography.headlineSmall,
-                                    color = if(!imageMode) {Color(0xff175546)}
-                                            else { Color(0xff2b2a56)},
+                                    color = Color(0xff175546),
                                     modifier = Modifier.offset(y = (-6).dp)
                                 )
                             }

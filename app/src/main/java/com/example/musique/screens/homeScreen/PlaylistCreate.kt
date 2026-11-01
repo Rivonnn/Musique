@@ -34,7 +34,7 @@ fun PlaylistCreate(
     viewModel: MusicViewModel,
     modifier: Modifier = Modifier,
 ) {
-     var showDialog by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
         PixelTextButton(
@@ -65,7 +65,6 @@ fun PlaylistCreateDialog(viewModel: MusicViewModel, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = {
-        name = ""
         onDismiss()
     }) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -90,10 +89,16 @@ fun PlaylistCreateDialog(viewModel: MusicViewModel, onDismiss: () -> Unit) {
                     value = name,
                     onValueChange = { name = it },
                     label = "Playlist Name",
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+                    onDone = {
+                        if (name.isNotBlank()) {
+                            viewModel.addPlaylist(name.trim())
+                            onDismiss()
+                        }
+                    }
                 )
 
-                if (name == "") {
+                if (name.isBlank()) {
                     Text(
                         "Playlist name cannot be empty.",
                         style = MaterialTheme.typography.bodyLarge,
@@ -103,8 +108,7 @@ fun PlaylistCreateDialog(viewModel: MusicViewModel, onDismiss: () -> Unit) {
                         textAlign = TextAlign.Center,
                         color = Color(0xff175546)
                     )
-                }
-                if (name != "") {
+                } else {
                     Spacer(Modifier.height(8.dp))
                 }
                 Row(
@@ -114,10 +118,7 @@ fun PlaylistCreateDialog(viewModel: MusicViewModel, onDismiss: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     PixelTextButton(
-                        onClick = {
-                            name = ""
-                            onDismiss()
-                        },
+                        onClick = onDismiss,
                         contentPadding = PaddingValues(bottom = 8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -133,8 +134,7 @@ fun PlaylistCreateDialog(viewModel: MusicViewModel, onDismiss: () -> Unit) {
                     PixelTextButton(
                         onClick = {
                             if (name.isNotBlank()) {
-                                viewModel.addPlaylist(name)
-                                name = ""
+                                viewModel.addPlaylist(name.trim())
                                 onDismiss()
                             }
                         },

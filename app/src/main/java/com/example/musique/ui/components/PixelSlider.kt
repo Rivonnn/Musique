@@ -1,22 +1,27 @@
 package com.example.musique.ui.components
 
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Slider
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.musique.R
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Slider
+
+// A nine-patch drawn narrower than its fixed corners renders garbled.
+// Set this to the filled-track drawable's fixed left + right size; raise it if you still
+// see a glitch at the start of a song.
+private val MinFilledWidth = 12.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,21 +54,25 @@ fun PixelSlider(
             }
         },
         track = { sliderState ->
-            val fraction = (sliderState.value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
+            val fraction = (sliderState.value - valueRange.start) /
+                    (valueRange.endInclusive - valueRange.start)
             Box(
                 modifier = Modifier.fillMaxWidth().height(18.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(18.dp)) {
                     val totalWidth = maxWidth
+                    val filledWidth = totalWidth * fraction
                     NinePatchImage(
                         drawableRes = trackBgRes,
                         modifier = Modifier.fillMaxSize()
                     )
-                    NinePatchImage(
-                        drawableRes = trackFilledRes,
-                        modifier = Modifier.width(totalWidth * fraction).height(18.dp)
-                    )
+                    if (filledWidth >= MinFilledWidth) {
+                        NinePatchImage(
+                            drawableRes = trackFilledRes,
+                            modifier = Modifier.width(filledWidth).height(18.dp)
+                        )
+                    }
                 }
             }
         }

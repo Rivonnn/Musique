@@ -1,10 +1,15 @@
 package com.example.musique.data
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
 import com.example.musique.model.Playlist
 import com.example.musique.model.PlaylistWithStats
 import com.example.musique.model.Song
 import kotlinx.coroutines.flow.Flow
+
 /**
  * The app's database operations. This is an interface: Room generates the
  * implementation at build time (MusicDao_Impl). @Insert/@Update/@Delete get their
@@ -79,7 +84,8 @@ interface MusicDao {
     // replacing a count flow and a duration flow per playlist.
     // LEFT JOIN keeps empty playlists; COALESCE turns their NULL sum into 0.
     // Aliases must match PlaylistWithStats's field names.
-    @Query("""
+    @Query(
+        """
     SELECT playlists.*, 
            COUNT(songs.id) AS songCount, 
            COALESCE(SUM(songs.duration), 0) AS totalDuration
@@ -87,6 +93,7 @@ interface MusicDao {
     LEFT JOIN songs ON songs.playlistId = playlists.id
     GROUP BY playlists.id
     ORDER BY playlists.id ASC
-""")
+"""
+    )
     fun getAllPlaylistsWithStats(): Flow<List<PlaylistWithStats>>
 }

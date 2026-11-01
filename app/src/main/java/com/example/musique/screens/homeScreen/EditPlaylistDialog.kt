@@ -7,9 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +42,7 @@ fun EditPlaylistDialog(
     imageUri: Uri?
 ) {
     var imageMode by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Box {
@@ -89,7 +88,7 @@ fun EditPlaylistDialog(
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .clip(RoundedCornerShape(16.dp))
-                                    .clickable { imageMode = !imageMode },
+                                    .clickable { imageMode = !imageMode; confirmDelete = false },
                                 contentScale = ContentScale.Crop
                             )
                         } else {
@@ -106,10 +105,8 @@ fun EditPlaylistDialog(
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(
-                                        if (!imageMode) Color(0xff6eb8a8) else Color(0xff00b1d5)
-                                    )
-                                    .clickable { imageMode = !imageMode }
+                                    .background(if (!imageMode) Color(0xff6eb8a8) else Color(0xff00b1d5))
+                                    .clickable { imageMode = !imageMode; confirmDelete = false }
                             )
                         }
                         Image(
@@ -140,7 +137,7 @@ fun EditPlaylistDialog(
                     }
                 }
 
-                if (name == "") {
+                if (name.isBlank()) {
                     Text(
                         "Playlist name cannot be empty.",
                         style = MaterialTheme.typography.bodyLarge,
@@ -165,17 +162,16 @@ fun EditPlaylistDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             PixelTextButton(
-                                onClick = onDelete,
+                                onClick = { if (confirmDelete) onDelete() else confirmDelete = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
                                     .height(50.dp)
                             ) {
                                 Text(
-                                    text = "Delete",
+                                    text = if (confirmDelete) "Sure?" else "Delete",
                                     style = MaterialTheme.typography.headlineSmall,
-                                    color = if (!imageMode) { Color(0xff175546) }
-                                    else { Color(0xff2b2a56) },
+                                    color = Color(0xff175546),
                                     modifier = Modifier.offset(y = (-6).dp)
                                 )
                             }
@@ -189,8 +185,7 @@ fun EditPlaylistDialog(
                                 Text(
                                     text = "Save",
                                     style = MaterialTheme.typography.headlineSmall,
-                                    color = if (!imageMode) { Color(0xff175546) }
-                                    else { Color(0xff2b2a56) },
+                                    color = Color(0xff175546),
                                     modifier = Modifier.offset(y = (-6).dp)
                                 )
                             }
