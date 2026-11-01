@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -47,7 +46,7 @@ fun EditPlaylistDialog(
     Dialog(onDismissRequest = onDismiss) {
         Box {
             NinePatchImage(
-                drawableRes = R.drawable.orange_tile,
+                drawableRes = R.drawable.bg_orange_tile,
                 modifier = Modifier.matchParentSize()
             )
             Column(
@@ -94,7 +93,7 @@ fun EditPlaylistDialog(
                         } else {
                             Image(
                                 painter = painterResource(
-                                    id = if (!imageMode) R.drawable.music_note_teal else R.drawable.music_note_blue
+                                    id = if (!imageMode) R.drawable.ic_music_note_teal else R.drawable.ic_music_note_blue
                                 ),
                                 contentDescription = null,
                                 modifier = Modifier
@@ -110,7 +109,7 @@ fun EditPlaylistDialog(
                             )
                         }
                         Image(
-                            painter = painterResource(id = R.drawable.edit_pencil),
+                            painter = painterResource(id = R.drawable.ic_edit_pencil),
                             contentDescription = null,
                             modifier = Modifier
                                 .size(30.dp)
@@ -201,7 +200,7 @@ fun EditPlaylistDialog(
                                     onRemoveImageClick()
                                     imageMode = false
                                 },
-                                backgroundRes = R.drawable.blue_tile,
+                                backgroundRes = R.drawable.bg_blue_tile,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
@@ -219,7 +218,7 @@ fun EditPlaylistDialog(
                                     onAddImageClick()
                                     imageMode = false
                                 },
-                                backgroundRes = R.drawable.blue_tile,
+                                backgroundRes = R.drawable.bg_blue_tile,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)

@@ -63,7 +63,7 @@ fun SongAdder(viewModel: MusicViewModel, modifier: Modifier = Modifier) {
     Box(modifier = modifier) {
         PixelTextButton(
             onClick = { dialog = true },
-            backgroundRes = R.drawable.blue_tile_dim,
+            backgroundRes = R.drawable.bg_blue_tile,
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(bottom = 6.dp)
         ) {
@@ -83,7 +83,7 @@ fun SongAdder(viewModel: MusicViewModel, modifier: Modifier = Modifier) {
                     .fillMaxWidth()
             ) {
                 NinePatchImage(
-                    drawableRes = R.drawable.orange_tile,
+                    drawableRes = R.drawable.bg_orange_tile,
                     modifier = Modifier.matchParentSize()
                 )
                 Column(

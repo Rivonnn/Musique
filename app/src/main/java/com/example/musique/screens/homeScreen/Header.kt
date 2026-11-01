@@ -13,7 +13,7 @@ import com.example.musique.R
 @Composable
 fun MusicAppHeader() {
     Image(
-        painter = painterResource(id = R.drawable.musique_title),
+        painter = painterResource(id = R.drawable.img_musique_title),
         contentDescription = "Musique",
         modifier = Modifier
             .statusBarsPadding()

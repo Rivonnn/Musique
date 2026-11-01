@@ -41,7 +41,7 @@ fun PlaylistCreate(
             onClick = {
                 showDialog = true
             },
-            backgroundRes = R.drawable.blue_tile_dim,
+            backgroundRes = R.drawable.bg_blue_tile,
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(bottom = 6.dp)
         ) {
@@ -69,7 +69,7 @@ fun PlaylistCreateDialog(viewModel: MusicViewModel, onDismiss: () -> Unit) {
     }) {
         Box(modifier = Modifier.fillMaxWidth()) {
             NinePatchImage(
-                drawableRes = R.drawable.orange_tile,
+                drawableRes = R.drawable.bg_orange_tile,
                 modifier = Modifier.matchParentSize()
             )
             Column(

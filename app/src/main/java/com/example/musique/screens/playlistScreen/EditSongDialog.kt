@@ -7,9 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +48,7 @@ fun EditSongDialog(
     Dialog(onDismissRequest = onDismiss) {
         Box {
             NinePatchImage(
-                drawableRes = R.drawable.orange_tile,
+                drawableRes = R.drawable.bg_orange_tile,
                 modifier = Modifier.matchParentSize()
             )
             Column(
@@ -98,7 +95,7 @@ fun EditSongDialog(
                         } else {
                             Image(
                                 painter = painterResource(
-                                    id = if (!imageMode) R.drawable.music_note_teal else R.drawable.music_note_blue
+                                    id = if (!imageMode) R.drawable.ic_music_note_teal else R.drawable.ic_music_note_blue
                                 ),
                                 contentDescription = null,
                                 modifier = Modifier
@@ -116,7 +113,7 @@ fun EditSongDialog(
                             )
                         }
                         Image(
-                            painter = painterResource(id = R.drawable.edit_pencil),
+                            painter = painterResource(id = R.drawable.ic_edit_pencil),
                             contentDescription = null,
                             modifier = Modifier
                                 .size(30.dp)
@@ -221,7 +218,7 @@ fun EditSongDialog(
                                     onRemoveImageClick()
                                     imageMode = false
                                 },
-                                backgroundRes = R.drawable.blue_tile,
+                                backgroundRes = R.drawable.bg_blue_tile,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
@@ -239,7 +236,7 @@ fun EditSongDialog(
                                     onAddImageClick()
                                     imageMode = false
                                 },
-                                backgroundRes = R.drawable.blue_tile,
+                                backgroundRes = R.drawable.bg_blue_tile,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)

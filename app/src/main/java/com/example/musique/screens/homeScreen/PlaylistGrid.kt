@@ -29,7 +29,6 @@ import coil.compose.AsyncImage
 import com.example.musique.MusicViewModel
 import com.example.musique.model.Playlist
 import androidx.compose.foundation.border
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.res.painterResource
 import com.example.musique.R
 import com.example.musique.ui.components.NinePatchImage
@@ -133,7 +132,7 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
                     )
             ) {
                 NinePatchImage(
-                    drawableRes = R.drawable.blue_tile,
+                    drawableRes = R.drawable.bg_blue_tile,
                     modifier = Modifier.matchParentSize()
                 )
                 Column(
@@ -160,7 +159,7 @@ fun PlaylistGrid(viewModel: MusicViewModel, onPlaylistClick: (Playlist) -> Unit)
                             )
                         } else {
                             Image(
-                                painter = painterResource(id = R.drawable.music_note_blue),
+                                painter = painterResource(id = R.drawable.ic_music_note_blue),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.size(96.dp)

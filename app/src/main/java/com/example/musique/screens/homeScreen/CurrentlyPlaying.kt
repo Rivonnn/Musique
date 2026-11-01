@@ -6,9 +6,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -42,7 +39,7 @@ fun CurrentlyPlaying(viewModel: MusicViewModel) {
             )
     ) {
         NinePatchImage(
-            drawableRes = R.drawable.blue_tile,
+            drawableRes = R.drawable.bg_blue_tile,
             modifier = Modifier.matchParentSize()
         )
         Column {
@@ -66,7 +63,7 @@ fun CurrentlyPlaying(viewModel: MusicViewModel) {
                 }
                 else {
                     Image(
-                        painter = painterResource(id = R.drawable.music_note_blue),
+                        painter = painterResource(id = R.drawable.ic_music_note_blue),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -112,9 +109,9 @@ fun CurrentlyPlaying(viewModel: MusicViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp, bottom = 22.dp, start = 18.dp, end = 18.dp),
-                thumbRes = R.drawable.slider_thumb_active,
-                trackBgRes = R.drawable.slider_bg_active,
-                trackFilledRes = R.drawable.slider_filled_active,
+                thumbRes = R.drawable.ui_slider_thumb_active,
+                trackBgRes = R.drawable.ui_slider_bg_active,
+                trackFilledRes = R.drawable.ui_slider_filled_active,
             )
         }
     }

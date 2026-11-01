@@ -77,7 +77,7 @@ fun PlaylistScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         Image(
-            painter = painterResource(id = R.drawable.main_bg),
+            painter = painterResource(id = R.drawable.bg_main),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -104,8 +104,8 @@ fun PlaylistScreen(
                 }
                 PixelTextButton(
                     onClick = { viewModel.toggleShuffle() },
-                    backgroundRes = if (viewModel.isShuffled) { R.drawable.blue_tile}
-                        else { R.drawable.teal_button}
+                    backgroundRes = if (viewModel.isShuffled) { R.drawable.bg_blue_tile}
+                        else { R.drawable.bg_teal_tile}
                 ) {
                     Text(
                         text = "SHUFFLE",
@@ -125,7 +125,7 @@ fun PlaylistScreen(
                 contentAlignment = Alignment.Center
             ) {
                 NinePatchImage(
-                    drawableRes = R.drawable.teal_button,
+                    drawableRes = R.drawable.bg_teal_tile,
                     modifier = Modifier.matchParentSize()
                 )
                 Text(

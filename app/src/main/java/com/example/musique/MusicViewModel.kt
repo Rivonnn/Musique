@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -33,9 +34,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
-import android.graphics.Bitmap
 import java.io.ByteArrayOutputStream
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * MusicViewModel is shared by all the screens, so that playback state can survive across
@@ -491,7 +491,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private val defaultArtworkBytes: ByteArray by lazy {
         val bitmap = BitmapFactory.decodeResource(
             getApplication<Application>().resources,
-            R.drawable.music_note_teal
+            R.drawable.ic_music_note_teal
         )
         ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             .toByteArray()

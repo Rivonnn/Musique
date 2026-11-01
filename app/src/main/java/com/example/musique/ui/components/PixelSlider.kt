@@ -31,9 +31,9 @@ fun PixelSlider(
     modifier: Modifier = Modifier,
     onValueChangeFinished: (() -> Unit)? = null,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    thumbRes: Int = R.drawable.slider_thumb,
-    trackBgRes: Int = R.drawable.slider_bg,
-    trackFilledRes: Int = R.drawable.slider_filled,
+    thumbRes: Int = R.drawable.ui_slider_thumb,
+    trackBgRes: Int = R.drawable.ui_slider_bg,
+    trackFilledRes: Int = R.drawable.ui_slider_filled,
 ) {
     Slider(
         value = value,

@@ -11,17 +11,19 @@ import coil.decode.GifDecoder
 import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 import com.example.musique.R
+import kotlin.time.Duration.Companion.milliseconds
+
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
     LaunchedEffect(Unit) {
-        delay(1500L)
+        delay(1500L.milliseconds)
         onSplashFinished()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(R.raw.musique_loading)
+                .data(R.drawable.bg_musique_loading)
                 .decoderFactory(GifDecoder.Factory())
                 .build(),
             contentDescription = "Loading",

@@ -1,11 +1,9 @@
 package com.example.musique.navigation
 
-import android.os.Build
-import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -16,9 +14,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.musique.MusicViewModel
+import com.example.musique.screens.SplashScreen
 import com.example.musique.screens.homeScreen.HomeScreen
 import com.example.musique.screens.playlistScreen.PlaylistScreen
-import com.example.musique.screens.SplashScreen
 
 private const val TRANSITION_DURATION = 600
 

@@ -39,7 +39,7 @@ class MusicService : MediaSessionService() {
         mediaSession = MediaSession.Builder(this, player).build()
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(this).apply {
-                setSmallIcon(R.drawable.light_teal)
+                setSmallIcon(R.drawable.img_transparent)
             }
         )
     }

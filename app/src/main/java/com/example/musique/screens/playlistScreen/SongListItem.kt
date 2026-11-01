@@ -7,9 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,7 +49,7 @@ fun SongListItem(
             .padding(horizontal = 38.dp)
     ) {
         NinePatchImage(
-            drawableRes = R.drawable.connectors,
+            drawableRes = R.drawable.img_connectors,
             modifier = Modifier.matchParentSize()
         )
     }
@@ -77,7 +74,7 @@ fun SongListItem(
             )
     ) {
         NinePatchImage(
-            drawableRes = R.drawable.teal_button,
+            drawableRes = R.drawable.bg_teal_tile,
             modifier = Modifier.matchParentSize()
         )
         Column(
@@ -104,7 +101,7 @@ fun SongListItem(
                     )
                 } else {
                     Image(
-                        painter = painterResource(id = R.drawable.music_note_teal),
+                        painter = painterResource(id = R.drawable.ic_music_note_teal),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -143,7 +140,7 @@ fun SongListItem(
                     if (isCurrent) {
                         Image(
                             painter = painterResource(
-                                if (viewModel.isLooping) R.drawable.loop_active else R.drawable.loop
+                                if (viewModel.isLooping) R.drawable.ic_loop_active else R.drawable.ic_loop
                             ),
                             contentDescription = null,
                             modifier = Modifier
@@ -165,14 +162,14 @@ fun SongListItem(
                     if (index > 0) {
                         PixelTextButton(
                             modifier = Modifier.size(22.dp),
-                            backgroundRes = R.drawable.arrow_up,
+                            backgroundRes = R.drawable.ic_arrow_up,
                             onClick = { viewModel.swapSongs(playlist.id, index, index - 1) }
                         )
                     }
                     if (!isLast) {
                         PixelTextButton(
                             modifier = Modifier.size(22.dp),
-                            backgroundRes = R.drawable.arrow_down,
+                            backgroundRes = R.drawable.ic_arrow_down,
                             onClick = { viewModel.swapSongs(playlist.id, index, index + 1) }
                         )
                     }

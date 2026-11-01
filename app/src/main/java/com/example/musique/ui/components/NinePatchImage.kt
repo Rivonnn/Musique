@@ -1,5 +1,6 @@
 package com.example.musique.ui.components
 
+import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import androidx.core.content.res.ResourcesCompat
 // Shared across all NinePatchImage instances - decoded once per resource, reused everywhere
 private val ninePatchCache = mutableMapOf<Int, Drawable?>()
 
+@SuppressLint("LocalContextResourcesRead")
 @Composable
 fun NinePatchImage(drawableRes: Int, modifier: Modifier = Modifier) {
     val context = LocalContext.current

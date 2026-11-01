@@ -18,7 +18,7 @@ fun PixelTextButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
-    backgroundRes: Int = R.drawable.teal_button,
+    backgroundRes: Int = R.drawable.bg_teal_tile,
     content: @Composable () -> Unit = {}
 ) {
     Box(
